@@ -2,33 +2,58 @@
 
 Full-stack starter for DevOps practice:
 
-- **Frontend**: React (Vite)
-- **Backend**: Node.js (Express) + **mysql2** (plain SQL, no ORM)
-- **DB**: MySQL (Docker)
+- **Frontend**: React + Vite
+- **Backend**: Node.js + Express + `mysql2` (plain SQL, no ORM)
+- **Database**: MySQL 8 (Docker)
 
-### What you get
-
-- Local dev with `docker compose` (DB) + hot reload apps
-- Containerized prod-like run (frontend + backend + mysql)
-- DB schema + seed on backend startup (see `backend/src/db.ts`)
-- Health endpoints for readiness/liveness checks
+The backend creates tables and seeds sample data on startup (`backend/src/db.ts`).
 
 ---
 
-## Quickstart (local dev)
-
-### Prereqs
+## Prerequisites
 
 - Node.js 20+
-- Docker Desktop
+- npm
+- Docker Desktop (or Docker Engine + Compose)
 
-### 1) Start MySQL
+---
+
+## Environment Variables
+
+### Backend (`backend/.env`)
+
+Copy `backend/.env.example` to `backend/.env` and set:
+
+- `PORT=8080`
+- `NODE_ENV=development`
+- `DATABASE_URL=mysql://app:app_password@localhost:3306/personal_project`
+- `WEB_ORIGIN=http://localhost:5173`
+
+Notes:
+- Use `localhost` in `DATABASE_URL` for local dev (backend runs on your host machine).
+- In Docker Compose, backend uses `DATABASE_URL=mysql://app:app_password@db:3306/personal_project` (`db` is the service name).
+
+### Frontend (`frontend/.env`)
+
+Copy `frontend/.env.example` to `frontend/.env` and set:
+
+- `VITE_API_BASE=http://localhost:8080` for local backend dev
+
+Notes:
+- In Docker Compose build args, frontend uses `VITE_API_BASE=http://localhost:8081`.
+- That is because backend container port `8080` is published as host port `8081`.
+
+---
+
+## Local Development (Recommended for coding)
+
+### 1) Start MySQL only
 
 ```bash
 docker compose up -d db
 ```
 
-### 2) Backend
+### 2) Run backend locally
 
 ```bash
 cd backend
@@ -37,9 +62,10 @@ npm install
 npm run dev
 ```
 
-Backend runs at `http://localhost:8080`.
+Backend URL: `http://localhost:8080`  
+Health checks: `http://localhost:8080/healthz` and `http://localhost:8080/readyz`
 
-### 3) Frontend
+### 3) Run frontend locally
 
 ```bash
 cd frontend
@@ -48,23 +74,42 @@ npm install
 npm run dev
 ```
 
-Frontend runs at `http://localhost:5173`.
+Frontend URL: `http://localhost:5173`
 
 ---
 
-## Run everything in containers
+## Run Entire Stack in Docker
 
 ```bash
 docker compose up --build
 ```
 
+Service URLs:
+- Frontend: `http://localhost:5173`
+- Backend (published): `http://localhost:8081`
+- MySQL: `localhost:3306`
+
+Important compose values currently used:
+- Backend env:
+  - `PORT=8080`
+  - `NODE_ENV=production`
+  - `DATABASE_URL=mysql://app:app_password@db:3306/personal_project`
+  - `WEB_ORIGIN=http://localhost:5173`
+- Frontend build arg:
+  - `VITE_API_BASE=http://localhost:8081`
+
 ---
 
-## Useful DevOps practice ideas
+## Common Commands
 
-- Add CI: lint, test, build Docker images
-- Add CD: deploy to a VM, Fly.io, Render, or ECS
-- Add observability: request logs, metrics, traces
-- Add DB backups + restore procedure
-- Add secret management and `.env` separation
+```bash
+# stop containers
+docker compose down
+
+# stop and remove DB volume (fresh database)
+docker compose down -v
+
+# rebuild all images
+docker compose build --no-cache
+```
 
